@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { FileText, LayoutTemplateIcon as Template, Scale, FileCheck, Menu, ChevronLeft, BookDashedIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/utils"
 import logo from '/Aurora-logo.svg'
 
 const menuItems = [
