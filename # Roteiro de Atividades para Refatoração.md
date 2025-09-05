@@ -1,203 +1,127 @@
-# Roteiro de Atividades para Refatoração do Hook `useControleDocumentos`
+# Roteiro de Atividades para Refatoração
 
-## 📋 Fase 1: Análise e Planejamento (Duração: 2 dias)
+## 1. Análise e Melhorias Baseadas em SOLID/OO
 
-### Atividade 1.1: Análise Detalhada do Código Existente  
-**Objetivo:** Compreender completamente a estrutura atual  
+### 1.1 Princípios SOLID
 
-**Tarefas:**  
-- Mapear todas as responsabilidades do hook atual  
-- Identificar dependências externas (services, contextos, React Router)  
-- Documentar fluxos de dados e efeitos colaterais  
+#### Single Responsibility Principle (SRP)
+**Problema:** `useControleDocumentos` com múltiplas responsabilidades  
+**Solução:** Dividir em hooks especializados:
+- `useDocumentUpload` - upload e processamento
+- `useDocumentState` - gerenciamento de estado
+- `useDocumentViewer` - lógica do visualizador
 
-**Entregável:** Documento de análise com diagramas de dependência  
+#### Open/Closed Principle (OCP)
+**Problema:** Lógica de extensões de arquivo hardcoded  
+**Solução:** Implementar padrão Strategy
 
----
+```typescript
+interface FileTypeHandler {
+  icon: React.ComponentType;
+  color: string;
+  canHandle(extension: string): boolean;
+  process(file: File): Promise<ProcessResult>;
+}
+```
 
-### Atividade 1.2: Definição da Nova Estrutura  
-**Objetivo:** Planejar a arquitetura refatorada  
+#### Dependency Inversion Principle (DIP)
+**Problema:** Acoplamento direto com serviços  
+**Solução:** Injeção de dependências
 
-**Tarefas:**  
-- Definir novos hooks especializados  
-- Planejar injeção de dependências  
-- Propor estrutura de funções puras para processamento  
+```typescript
+interface DocumentService {
+  uploadAndProcess(file: File, tokenCallback?: (tokens: number) => void): Promise<ProcessResult>;
+  getProjectByName(name: string): Promise<ProjectData>;
+  viewOriginalFile(id: string): Promise<FileData>;
+}
+```
 
-**Entregável:** Diagrama da nova arquitetura  
+## 2. Problemas Identificados
 
----
+### 2.1 Acoplamento Excessivo
+- Componentes fortemente acoplados a hooks específicos
+- Mudanças afetam múltiplos componentes
 
-## 🔧 Fase 2: Refatoração SOLID (Duração: 5 dias)
+### 2.2 Dificuldade de Manutenção
+- Lógica complexa de conversão
+- Múltiplas responsabilidades no mesmo hook
 
-### Atividade 2.1: Aplicar Single Responsibility Principle  
-**Objetivo:** Dividir o hook monolítico  
+### 2.3 Problemas de Performance
+- Conversões desnecessárias
+- Re-renders em cascata
 
-**Tarefas:**  
-- Criar `useUploadManager` para gerenciamento de upload  
-- Criar `useFileProcessor` para processamento de arquivos  
-- Criar `useDocumentState` para gerenciamento de estado  
-- Extrair lógica de UI para hooks especializados  
+### 2.4 Dificuldade de Extensão
+- Adicionar novos tipos de arquivo é trabalhoso
+- Lógica de visualização pouco flexível
 
-**Critérios de Aceitação:** Cada hook tem uma única responsabilidade clara  
+## 3. Estratégias de Teste
 
----
+### 3.1 Mock de Dependências
+```typescript
+const mockDocumentService: DocumentService = {
+  uploadAndProcess: jest.fn(),
+  getProjectByName: jest.fn(),
+  viewOriginalFile: jest.fn()
+};
+```
 
-### Atividade 2.2: Implementar Dependency Inversion  
-**Objetivo:** Remover acoplamento direto  
+### 3.2 Extrair Lógica Pura
+```typescript
+export const calculateFileSize = (docInfo: any): number => {
+  if (docInfo.data?.texto_total) {
+    return new TextEncoder().encode(docInfo.data.texto_total).length;
+  }
+  return 0;
+};
+```
 
-**Tarefas:**  
-- Criar interfaces para serviços (`IProjectService`, `IDocumentService`)  
-- Implementar injeção de dependências via props  
-- Criar provider para dependências  
+## 4. Roteiro de Implementação
 
-**Critérios de Aceitação:** Serviços podem ser mockados facilmente  
+### Fase 1: Análise e Planejamento (Dia 1)
+- Mapear dependências
+- Definir interfaces
+- Documentar fluxo atual
 
----
+### Fase 2: Refatoração Core (Dias 2-4)
+- Aplicar SRP
+- Implementar padrão Strategy
+- Configurar injeção de dependências
 
-### Atividade 2.3: Garantir Open/Closed Principle  
-**Objetivo:** Facilitar extensão para novos tipos de arquivo  
+### Fase 3: Testabilidade (Dias 5-6)
+- Criar factories para testes
+- Extrair lógica pura
+- Configurar ambiente de testes
 
-**Tarefas:**  
-- Criar sistema de plugins para processadores de arquivo  
-- Implementar registro dinâmico de processadores  
-- Definir interface padrão para processadores  
+### Fase 4: Componentes e UI (Dias 7-8)
+- Refatorar componentes
+- Melhorar DocumentViewerModal
 
-**Critérios de Aceitação:** Novos tipos podem ser adicionados sem modificar código existente  
+### Fase 5: Integração e Validação (Dias 9-10)
+- Integração gradual
+- Testes de regressão
 
----
+## 5. Métricas de Sucesso
 
-## ⚙️ Fase 3: Programação Funcional (Duração: 4 dias)
+| Métrica | Antes | Depois |
+|---------|-------|--------|
+| Acoplamento | Alto | Baixo |
+| Cobertura de Testes | Baixa | >80% |
+| Complexidade Ciclomática | Alta | Reduzida em 50% |
 
-### Atividade 3.1: Implementar Imutabilidade  
-**Objetivo:** Eliminar mutações diretas de estado  
+## 6. Riscos e Mitigações
 
-**Tarefas:**  
-- Converter `useState` para `useReducer` para estado complexo  
-- Implementar funções de atualização imutáveis  
-- Utilizar biblioteca de imutabilidade (Immer ou similar)  
+| Risco | Impacto | Mitigação |
+|-------|---------|-----------|
+| Quebra de funcionalidade | Alto | Feature flags e testes de regressão |
+| Aumento de complexidade | Médio | Abordagem incremental |
+| Resistência da equipe | Baixo | Sessões de pair programming |
 
-**Critérios de Aceitação:** Nenhuma mutação direta de estado  
-
----
-
-### Atividade 3.2: Extrair Funções Puras  
-**Objetivo:** Isolar lógica de negócio testável  
-
-**Tarefas:**  
-- Criar `fileProcessors.js` com funções puras  
-- Implementar `validationUtils.js` com validações puras  
-- Extrair transformações de dados para funções separadas  
-
-**Critérios de Aceitação:** Funções puras são totalmente testáveis e sem efeitos colaterais  
-
----
-
-### Atividade 3.3: Implementar Composição Funcional  
-**Objetivo:** Criar funções menores e compostas  
-
-**Tarefas:**  
-- Quebrar `processFiles` em funções menores  
-- Implementar composição com `compose` ou `pipe`  
-- Criar utilitários de transformação funcional  
-
-**Critérios de Aceitação:** Código mais legível e maintainable  
-
----
-
-## 🧪 Fase 4: Testabilidade (Duração: 4 dias)
-
-### Atividade 4.1: Preparar Ambiente de Teste  
-**Objetivo:** Configurar infraestrutura de testes  
-
-**Tarefas:**  
-- Configurar Jest e React Testing Library  
-- Criar factories para dados de teste  
-- Implementar mock para todas as dependências externas  
-
-**Critérios de Aceitação:** Ambiente de teste configurado e funcionando  
-
----
-
-### Atividade 4.2: Escrever Testes Unitários  
-**Objetivo:** Garantir cobertura de testes abrangente  
-
-**Tarefas:**  
-- Testar todas as funções puras isoladamente  
-- Testar hooks individuais com mocks  
-- Implementar testes para casos de erro e edge cases  
-
-**Critérios de Aceitação:** 90%+ de cobertura de testes  
+## 7. Próximos Passos
+1. Revisar e aprovar o plano
+2. Iniciar implementação da Fase 1
+3. Realizar revisões semanais de progresso
 
 ---
-
-### Atividade 4.3: Testes de Integração  
-**Objetivo:** Garantir que os hooks funcionem juntos  
-
-**Tarefas:**  
-- Criar testes de integração entre hooks  
-- Testar fluxos completos de upload e processamento  
-- Verificar comunicação entre componentes  
-
-**Critérios de Aceitação:** Todos os fluxos principais testados  
-
----
-
-## 🚀 Fase 5: Implementação e Validação (Duração: 3 dias)
-
-### Atividade 5.1: Integração Gradual  
-**Objetivo:** Substituir implementação antiga sem quebrar funcionalidade  
-
-**Tarefas:**  
-- Implementar sistema feature-flag para migração gradual  
-- Substituir funcionalidades uma por uma  
-- Manter compatibilidade durante transição  
-
-**Critérios de Aceitação:** Nenhuma regressão introduzida  
-
----
-
-### Atividade 5.2: Validação e Performance  
-**Objetivo:** Garantir qualidade e performance  
-
-**Tarefas:**  
-- Realizar testes de performance comparativos  
-- Validar com usuários/testers  
-- Coletar e analisar métricas de uso  
-
-**Critérios de Aceitação:** Performance igual ou melhor que implementação anterior  
-
----
-
-### Atividade 5.3: Documentação  
-**Objetivo:** Documentar a nova arquitetura  
-
-**Tarefas:**  
-- Documentar novos hooks e suas APIs  
-- Criar guia de como adicionar novos tipos de arquivo  
-- Documentar padrões e boas práticas implementadas  
-
-**Critérios de Aceitação:** Documentação completa e acessível  
-
----
-
-## 📊 Cronograma Total Estimado: 18 dias úteis
-
-**Dependências:**  
-- Equipe de 2-3 desenvolvedores senior/mid-level  
-- Acesso a stakeholders para validação  
-- Ambiente de desenvolvimento adequado  
-
----
-
-## 🛑 Riscos e Mitigação
-
-| Risco                         | Mitigação                                             |
-|------------------------------|--------------------------------------------------------|
-| Complexidade da refatoração  | Implementar incrementalmente com feature flags        |
-| Performance piorada          | Testes de performance regulares                        |
-| Resistência à mudança        | Treinamento e documentação adequada                    |
-
----
-
 **Status:** Planejado  
-**Última atualização:** 03/09/2025  
+**Última atualização:** 04/09/2025  
 **Responsável:** Equipe de Desenvolvimento Frontend

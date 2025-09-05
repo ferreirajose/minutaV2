@@ -2,9 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ThemeProvider } from "./components/common/theme-provider"
 import { Layout } from "./components/layout/layout"
 import "./App.css"
-import { LandingPage } from "./pages/landing-page"
-import { NotFoundPage } from "./pages/not-found-page"
-import { HomePage } from "./pages/home-page"
+import { LandingPage } from "./components/layout/landing-page"
+import { NotFoundPage } from "./components/layout/not-found-page"
+import { HomePage } from "./components/layout/home-page"
+
+import { DocumentosPage } from "./presentation/pages/documents/DocumentsPage"
 
 function App() {
   return (
@@ -39,6 +41,7 @@ function SystemRoutesWithLayout() {
       <Routes>
         {/* Rota para a home page */}
         <Route path="/home" element={<HomePage />} />
+        <Route path="/documentos" element={<DocumentosPage />} />
 
         {/* Redirecionar rotas desconhecidas para 404 */}
         <Route path="*" element={<Navigate to="/404" replace />} />
