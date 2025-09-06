@@ -2,26 +2,13 @@ import React, { useCallback } from 'react';
 import { FileText, Trash2, Eye, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Document } from '@/core/domain/entities/document';
+import type { DocumentWithMetadata } from '@/shared/interface';
 
 interface DocumentStatus {
   bgColor: string;
   color: string;
   icon: React.ReactNode;
   text: string;
-}
-
-interface DocumentWithMetadata extends Document {
-  data?: {
-    titulo_arquivo?: string;
-    total_paginas?: number;
-    total_tokens?: number;
-  };
-  file: File;
-  hasError?: boolean;
-  errorMessage?: string;
-  isUploading?: boolean;
-  uploadProgress?: number;
 }
 
 interface DocumentListProps {
@@ -41,7 +28,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
   onRetry,
   onClearAll,
   isLoading = false,
-  showClearAll = true,
+  showClearAll = true
 }) => {
   const getDocumentStatus = useCallback((doc: DocumentWithMetadata): DocumentStatus => {
     if (doc.hasError) {
@@ -60,7 +47,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
         text: 'Enviando...',
       };
     }
-    if (doc.data) {
+    if (doc) {
       return {
         bgColor: 'bg-green-50',
         color: 'text-green-600',
@@ -107,6 +94,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
     return <div className="text-center py-8 text-gray-500">Nenhum documento encontrado</div>;
   }
 
+  console.log(documentos, 'documentos')
   return (
     <div className="mb-12">
       <div className="flex justify-between items-center mb-4">
@@ -137,15 +125,15 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">
-                        {doc.data?.titulo_arquivo || doc.file?.name || 'Documento sem nome'}
+                        {doc.name || doc.file?.name || 'Documento sem nome'}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
                         {doc.file?.size && <span>{formatFileSize(doc.file.size)}</span>}
-                        {doc.data?.total_paginas && (
-                          <span>• {doc.data.total_paginas} páginas</span>
+                        {doc.total_paginas && (
+                          <span>• {doc.total_tokens} páginas</span>
                         )}
-                        {doc.data?.total_tokens && (
-                          <span>• {doc.data.total_tokens.toLocaleString()} tokens</span>
+                        {doc.total_tokens && (
+                          <span>• {doc.total_tokens.toLocaleString()} tokens</span>
                         )}
                       </div>
                       <div className={`text-sm mt-2 flex items-center gap-2 ${status.color}`}>
@@ -184,7 +172,7 @@ export const DocumentList: React.FC<DocumentListProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => onView(doc)}
-                    disabled={!doc.data}
+                    disabled={!doc}
                     className="flex items-center"
                   >
                     <Eye className="h-4 w-4 mr-2" />
