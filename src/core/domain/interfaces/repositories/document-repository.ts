@@ -23,6 +23,12 @@ export interface DocumentRepository {
    * @param status The status to filter by
    */
   findByStatus(status: 'pending' | 'processing' | 'completed' | 'error'): Promise<Document[]>;
+  
+   /**
+   * Find documents by type
+   * @param documentType The document type to filter by
+   */
+  findByType(documentType: 'documento' | 'modelo' | 'jurisprudencia'): Promise<Document[]>;
 
   /**
    * Update a document
@@ -46,4 +52,10 @@ export interface DocumentRepository {
    * @param status The status to count
    */
   countByStatus(status: 'pending' | 'processing' | 'completed' | 'error'): Promise<number>;
+
+  /**
+   * Count documents by type
+   * @param documentType The document type to count
+   */
+  countByType(documentType: 'documento' | 'modelo' | 'jurisprudencia'): Promise<number>;
 }
