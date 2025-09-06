@@ -31,6 +31,12 @@ export abstract class BaseDTO {
   static fromPlainObject<T extends BaseDTO>(this: new () => T, data: Partial<T>): T {
     const instance = new this();
     Object.assign(instance, data);
+    
+    // Garante valores padrão para campos obrigatórios
+    if ('documentType' in instance && !instance['documentType']) {
+      instance['documentType'] = 'documento';
+    }
+    
     return instance;
   }
 }

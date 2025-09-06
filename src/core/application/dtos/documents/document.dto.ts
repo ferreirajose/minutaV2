@@ -1,8 +1,13 @@
+import type { DocumentType } from "@/shared/types";
 import { BaseDTO } from "../base.dto";
 
 export interface DocumentMetadata {
   totalPages?: number;
   totalTokens?: number;
+  category?: string; // Para documentos
+  templateType?: string; // Para modelos
+  court?: string; // Para jurisprudência
+  caseNumber?: string; // Para jurisprudência
   [key: string]: any;
 }
 
@@ -21,6 +26,11 @@ export class DocumentDTO extends BaseDTO {
    * The MIME type of the document
    */
   type: string;
+
+  /**
+   * The type of document (documento, modelo, jurisprudencia)
+   */
+  documentType: DocumentType
 
   /**
    * The current status of the document
@@ -60,6 +70,11 @@ export class CreateDocumentDTO {
   file: File;
 
   /**
+   * The type of document (documento, modelo, jurisprudencia)
+   */
+  documentType: DocumentType
+
+  /**
    * ID of the project to associate with this document (optional)
    */
   projectId?: string;
@@ -77,9 +92,34 @@ export class UpdateDocumentDTO {
   name?: string;
 
   /**
+   * New document type (optional)
+   */
+  documentType: DocumentType
+
+  /**
    * New metadata to merge with existing metadata
    */
   metadata?: Record<string, any>;
+
+  /**
+   * Category for documentos (optional)
+   */
+  category?: string;
+
+  /**
+   * Template type for modelos (optional)
+   */
+  templateType?: string;
+
+  /**
+   * Court for jurisprudencia (optional)
+   */
+  court?: string;
+
+  /**
+   * Case number for jurisprudencia (optional)
+   */
+  caseNumber?: string;
 }
 
 export class DocumentResponseDTO extends DocumentDTO {
@@ -92,4 +132,19 @@ export class DocumentResponseDTO extends DocumentDTO {
    * The full metadata of the document
    */
   metadata: DocumentMetadata;
+
+  /**
+   * Helper methods to check document type
+   */
+  isDocumento(): boolean {
+    return this.documentType === 'documento';
+  }
+
+  isModelo(): boolean {
+    return this.documentType === 'modelo';
+  }
+
+  isJurisprudencia(): boolean {
+    return this.documentType === 'jurisprudencia';
+  }
 }

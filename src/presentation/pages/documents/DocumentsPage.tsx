@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { DocumentList, DocumentUpload } from '@/presentation/components/documents';
 import { DocumentService } from '@/infrastructure/services/document-service';
 import { HttpClient } from '@/infrastructure/http/http-client';
+import type { DocumentWithMetadata } from '@/shared/interface';
 import { Document } from '@/core/domain/entities/document';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -20,19 +21,6 @@ const httpClient = new HttpClient({
 
 // Crie uma instância do DocumentService com o HttpClient
 const documentService = new DocumentService(httpClient);
-
-interface DocumentWithMetadata extends Document {
-  file: File;
-  data?: {
-    titulo_arquivo?: string;
-    total_paginas?: number;
-    total_tokens?: number;
-  };
-  hasError?: boolean;
-  errorMessage?: string;
-  isUploading?: boolean;
-  uploadProgress?: number;
-}
 
 export function DocumentosPage() {
   const [documents, setDocuments] = useState<DocumentWithMetadata[]>([]);
@@ -56,7 +44,13 @@ export function DocumentosPage() {
   const handleRetry = useCallback(async (doc: DocumentWithMetadata) => {
     try {
       setDocuments(prev => prev.map(d => 
-        d.id === doc.id ? { ...d, isUploading: true, hasError: false, errorMessage: undefined } : d
+        d.id === doc.id ? { 
+          ...d, 
+          isUploading: true, 
+          hasError: false, 
+          errorMessage: undefined,
+          status: 'pending' as const
+        } : d
       ));
 
       const uploadedDoc = await documentService.uploadDocument({
@@ -84,7 +78,8 @@ export function DocumentosPage() {
           ...d, 
           hasError: true, 
           errorMessage: 'Falha ao fazer upload. Tente novamente.',
-          isUploading: false
+          isUploading: false,
+          status: 'error' as const
         } : d
       ));
     }
@@ -92,15 +87,9 @@ export function DocumentosPage() {
 
   // Handle file upload
   const handleUpload = useCallback(async (files: File[]) => {
-    const newDocuments: DocumentWithMetadata[] = files.map(file => ({
-      id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      file,
-      isUploading: true,
-      uploadProgress: 0
-    }));
+    const newDocuments: DocumentWithMetadata[] = files.map(file => 
+        Document.createFromFile(file, 'documento').toJSON()
+    )
 
     setDocuments(prev => [...prev, ...newDocuments]);
     setUploadingCount(prev => prev + files.length);
@@ -134,14 +123,15 @@ export function DocumentosPage() {
             ...d, 
             hasError: true, 
             errorMessage: 'Falha no upload. Tente novamente.',
-            isUploading: false
+            isUploading: false,
+            status: 'error' as const
           } : d
         ));
       } finally {
         setUploadingCount(prev => prev - 1);
       }
     });
-  }, []);
+  }, []); // ← Adicione a dependência
 
   // Clear all documents
   const handleClearAll = useCallback(async () => {
@@ -187,7 +177,7 @@ export function DocumentosPage() {
       />
 
       <DocumentList
-        documentos={documents}
+        documentos={documents} // Passando um objeto JSON
         onDelete={handleDelete}
         onView={handleView}
         onRetry={handleRetry}
