@@ -1,10 +1,12 @@
 import type { DocumentService } from "@/core/domain/interfaces/services/document-service";
 import type { DocumentRepository } from "@/core/domain/interfaces/repositories/document-repository";
 import { Document } from "@/core/domain/entities/document";
+import type { DocumentType } from "@/shared/types";
 
 export interface UploadDocumentInput {
   file: File;
   projectId?: string;
+  documentType: DocumentType,
   metadata?: Record<string, any>;
   onProgress?: (progress: number) => void;
   abortSignal?: AbortSignal;
@@ -32,7 +34,7 @@ export class UploadDocumentUseCase {
     this.validateFile(input.file);
 
     // Create a new document entity
-    const document = Document.createFromFile(input.file);
+    const document = Document.createFromFile(input.file, input.documentType || 'documento');
     
     try {
       // Save initial document state
