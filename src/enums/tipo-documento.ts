@@ -1,5 +1,0 @@
-export enum TipoDocumento {
-  MODELO = 'MODELO',
-  DOCUMENTOS = 'DOCUMENTOS',
-  JURISPRUDENCIA = 'JURISPRUDENCIA',
-}
