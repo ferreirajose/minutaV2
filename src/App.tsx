@@ -5,8 +5,8 @@ import "./App.css"
 import { LandingPage } from "./components/layout/landing-page"
 import { NotFoundPage } from "./components/layout/not-found-page"
 import { HomePage } from "./components/layout/home-page"
+import { DocumentosContent } from "./presentation/components/documentos/documentos-content"
 
-import { DocumentosPage } from "./presentation/pages/documents/DocumentsPage"
 
 function App() {
   return (
@@ -41,7 +41,7 @@ function SystemRoutesWithLayout() {
       <Routes>
         {/* Rota para a home page */}
         <Route path="/home" element={<HomePage />} />
-        <Route path="/documentos" element={<DocumentosPage />} />
+        <Route path="/documentos" element={<DocumentosContent />} />
 
         {/* Redirecionar rotas desconhecidas para 404 */}
         <Route path="*" element={<Navigate to="/404" replace />} />

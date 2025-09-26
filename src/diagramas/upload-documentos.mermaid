@@ -1,0 +1,114 @@
+%% classDiagram
+%%     class Documento {
+%%         +id: string
+%%         +nome: string
+%%         +tamanho: number
+%%         +tipo: string
+%%         +progresso: number
+%%         +status: DocumentoStatus
+%%         +arquivo: File
+%%         +url: string
+%%         +erro: string
+%%     }
+
+%%     class DocumentoStatus {
+%%         <<enumeration>>
+%%         CARREGANDO: "carregando"
+%%         CONCLUIDO: "concluido"
+%%         ERRO: "erro"
+%%         CANCELADO: "cancelado"
+%%     }
+
+%%     class GerenciadorUpload {
+%%         #fileInputRef: ReactRef
+%%         #isDragOver: boolean
+%%         #isLoadingExisting: boolean
+%%         #documents: Documento[]
+        
+%%         +constructor()
+%%         +clearUploadedDocuments(): void
+%%         +handleDragEnter(e: ReactDragEvent): void
+%%         +handleDragLeave(e: ReactDragEvent): void
+%%         +handleDragOver(e: ReactDragEvent): void
+%%         +handleDrop(e: ReactDragEvent): void
+%%         +handleUploadButtonClick(): void
+%%         +handleFileChange(e: ReactChangeEvent): void
+%%         +handleDeleteDocument(doc: Documento): void
+%%         +handleRetryUpload(doc: Documento): void
+%%         +handleExpandirVisualizacao(doc: Documento): void
+        
+%%         +getTotalUploadingFiles(): number
+%%         +getDocumentStatus(doc: Documento): DocumentoStatus
+%%         #validateFile(file: File): boolean
+%%         #processFileUpload(file: File): Promise~void~
+%%         #updateDocumentStatus(docId: string, status: DocumentoStatus): void
+%%         #calculateUploadProgress(loaded: number, total: number): number
+%%     }
+
+%%     class ReactComponent {
+%%         <<interface>>
+%%         +render(): JSX.Element
+%%     }
+
+%%     class UploadComponent {
+%%         -gerenciador: GerenciadorUpload
+        
+%%         +render(): JSX.Element
+%%         +componentDidMount(): void
+%%         +componentWillUnmount(): void
+%%     }
+
+%%     Documento "1" *-- "1" DocumentoStatus
+%%     GerenciadorUpload "1" *-- "0..*" Documento
+%%     UploadComponent --> GerenciadorUpload
+%%     UploadComponent ..|> ReactComponent
+
+classDiagram
+    class Documento {
+        +id: string
+        +nome: string
+        +tamanho: number
+        +tipo: string
+        +progresso: number
+        +status: DocumentoStatus
+        +arquivo: File
+        +url: string
+        +erro: string
+    }
+
+    class DocumentoStatus {
+        <<enumeration>>
+        CARREGANDO: "carregando"
+        CONCLUIDO: "concluido"
+        ERRO: "erro"
+        CANCELADO: "cancelado"
+    }
+
+    class useUploadManager {
+        -documents: Documento[]
+        -isDragOver: boolean
+        -isLoadingExisting: boolean
+        -fileInputRef: ReactRef
+        
+        +clearUploadedDocuments(): void
+        +handleDragEnter(e: ReactDragEvent): void
+        +handleDragLeave(e: ReactDragEvent): void
+        +handleDragOver(e: ReactDragEvent): void
+        +handleDrop(e: ReactDragEvent): void
+        +handleUploadButtonClick(): void
+        +handleFileChange(e: ReactChangeEvent): void
+        +handleDeleteDocument(doc: Documento): void
+        +handleRetryUpload(doc: Documento): void
+        +handleExpandirVisualizacao(doc: Documento): void
+        +getTotalUploadingFiles(): number
+        +getDocumentStatus(doc: Documento): DocumentoStatus
+    }
+
+    class UploadComponent {
+        +useUploadManager(): useUploadManager
+        +render(): JSX.Element
+    }
+
+    Documento "1" *-- "1" DocumentoStatus
+    useUploadManager "1" *-- "0..*" Documento
+    UploadComponent --> useUploadManager

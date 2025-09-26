@@ -1,0 +1,46 @@
+classDiagram
+    class DocumentProcessingService {
+        -baseUrl: string
+        -apiToken: string
+        +DocumentProcessingService(baseUrl: string, apiToken: string)
+        +processDocument(file: File): Promise~DocumentData~
+        -buildFormData(file: File): FormData
+        -makeApiRequest(formData: FormData): Promise~DocumentData~
+    }
+
+    class DocumentData {
+        +uuid_documento: string
+        +arquivo_original: string
+        +titulo_arquivo: string
+        +extensao: string
+        +total_paginas: number
+        +total_tokens: number
+        +paginas: Pagina[]
+        +texto_total: string
+    }
+
+    class Pagina {
+        +fonte: string
+        +numero_pagina: number
+        +quantidade_tokens: number
+        +texto: string
+    }
+
+    class ApiConfig {
+        +baseUrl: string
+        +endpoint: string
+        +timeout: number
+        +maxRetries: number
+    }
+
+    class ApiError {
+        +message: string
+        +statusCode: number
+        +timestamp: Date
+        +ApiError(message: string, statusCode: number)
+    }
+
+    DocumentProcessingService --> DocumentData
+    DocumentProcessingService --> ApiConfig
+    DocumentProcessingService --> ApiError
+    DocumentData --> Pagina

@@ -1,0 +1,37 @@
+classDiagram
+    class TipoDocumento {
+        <<enumeration>>
+        MODELO
+        DOCUMENTOS
+        JURISPRUDENCIA
+    }
+
+    class DocumentData {
+        <<interface>>
+        +uuid_documento: string
+        +arquivo_original: string
+        +titulo_arquivo: string
+        +extensao: string
+        +total_paginas: number
+        +total_tokens: number
+        +paginas: string[]
+        +texto_total: string
+    }
+
+    class ProcessedDocument {
+        <<interface>>
+        +id: string
+        +file: File
+        +isProcessed: boolean
+        +hasError: boolean
+        +isUploading: boolean
+        +uploadProgress: number
+        +tipo: TipoDocumento
+        +data: DocumentData
+        +startUpload() Promise~void~
+        +updateProgress(progress: number) void
+        +completeUpload() void
+    }
+
+    ProcessedDocument --> TipoDocumento
+    ProcessedDocument --> DocumentData
