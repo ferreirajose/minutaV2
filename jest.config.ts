@@ -1,8 +1,10 @@
-import type {Config} from 'jest';
+import type { Config } from 'jest'
 
-const config: Config = {
-  preset: 'ts-jest',
-  verbose: true
-};
+const jestConfig: Config = {
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@interface/(.*)$': '<rootDir>/interface/$1',
+  },
+}
 
-export default config;
+export default jestConfig

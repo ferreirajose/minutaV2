@@ -6,11 +6,9 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
@@ -20,13 +18,13 @@
       "@components/*": ["src/components/*"],
       "@assets/*": ["src/assets/*"],
       "@lib/*": ["src/lib/*"],
-      "@hooks/*": ["src/hooks/*"]
+      "@hooks/*": ["src/hooks/*"],
+      "@interface/*": ["src/interface/*"]
     },
-      
-    /* Adicione estas linhas */
+    "types": ["@types/node", "@types/jest", "jest"],
+    "resolveJsonModule": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    /* Linting */
+    "allowSyntheticDefaultImports": true,    
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -34,6 +32,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.test.ts", "**/*.test.tsx"],
+  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.test.ts", "**/*.test.tsx", "src/**/*.json"],
   "exclude": ["node_modules"]
 }

@@ -14,3 +14,10 @@ export interface Pagina {
   quantidade_tokens: number;
   texto: string;
 }
+
+export type ResponseData = {
+  success?: boolean,
+  message?: string,
+  status?: number,
+  data?: DataResponse;
+}
