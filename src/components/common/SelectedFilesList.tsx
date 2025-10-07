@@ -1,29 +1,31 @@
+// SelectedFilesList.tsx
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DocumentItem } from './DocumentItem';
 import { FileText, Loader2 } from 'lucide-react';
+import DocumentBase from '@/domain/entity/DocumentBase';
 
 interface SelectedFilesListProps {
-  files: File[];
+  documents: DocumentBase[];
   uploadingFiles?: number;
-  onRemoveFile: (index: number) => void;
+  onRemoveDocument: (index: number) => void;
   onClearAll: () => void;
-  onViewFile?: (file: File, index: number) => void;
-  onRetryFile?: (file: File, index: number) => void;
+  onViewDocument?: (document: DocumentBase, index: number) => void;
+  onRetryDocument?: (document: DocumentBase, index: number) => void;
   disabled?: boolean;
 }
 
 export function SelectedFilesList({
-  files,
+  documents,
   uploadingFiles = 0,
-  onRemoveFile,
+  onRemoveDocument,
   onClearAll,
-  onViewFile,
-  onRetryFile,
+  onViewDocument,
+  onRetryDocument,
   disabled = false
 }: SelectedFilesListProps) {
 
-  const getFileStatus = (file: File, index: number) => {
+  const getDocumentStatus = (document: DocumentBase, index: number) => {
     const isUploading = uploadingFiles > 0;
     
     if (isUploading) {
@@ -35,15 +37,38 @@ export function SelectedFilesList({
       };
     }
 
+    // Verifica se o documento foi processado com sucesso
+    if (document.data) {
+      return {
+        bgColor: 'bg-green-50',
+        color: 'text-green-600',
+        text: 'Processado com sucesso',
+        icon: <FileText className="h-4 w-4" />
+      };
+    }
+
     return {
-      bgColor: 'bg-white',
-      color: 'text-green-600',
-      text: 'Processado com sucesso',
+      bgColor: 'bg-yellow-50',
+      color: 'text-yellow-600',
+      text: 'Aguardando processamento',
       icon: <FileText className="h-4 w-4" />
     };
   };
 
-  if (files.length === 0) {
+  // Obter totalPages e totalTokens do DocumentBase
+  const getDocumentInfo = (document: DocumentBase) => {
+    console.log('Document data:', document);
+    if (document.data) {
+      const data = document.data;
+      return {
+        totalPages: data.total_paginas || 0,
+        totalTokens: data.total_tokens || 0
+      };
+    }
+    return { totalPages: 0, totalTokens: 0 };
+  };
+
+  if (documents.length === 0) {
     return null;
   }
 
@@ -53,10 +78,10 @@ export function SelectedFilesList({
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-medium flex items-center">
             <FileText className="h-4 w-4 mr-2" />
-            Arquivos selecionados ({files.length})
+            Documentos selecionados ({documents.length})
             {uploadingFiles > 0 && (
               <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                Processando {uploadingFiles} arquivo(s)...
+                Processando {uploadingFiles} documento(s)...
               </span>
             )}
           </h3>
@@ -71,16 +96,23 @@ export function SelectedFilesList({
         </div>
         
         <div className="space-y-3 max-h-80 overflow-y-auto">
-          {files.map((file, index) => (
-            <DocumentItem
-              key={`${file.name}-${index}-${file.lastModified}`}
-              document={file}
-              status={getFileStatus(file, index)}
-              onDelete={() => onRemoveFile(index)}
-              onView={onViewFile ? () => onViewFile(file, index) : undefined}
-              onRetry={onRetryFile ? () => onRetryFile(file, index) : undefined}
-            />
-          ))}
+          {documents.map((document, index) => {
+            const documentInfo = getDocumentInfo(document);
+            const status = getDocumentStatus(document, index);
+            
+            return (
+              <DocumentItem
+                key={document.id}
+                document={document}
+                status={status}
+                totalPages={documentInfo.totalPages}
+                totalTokens={documentInfo.totalTokens}
+                onDelete={() => onRemoveDocument(index)}
+                onView={onViewDocument ? () => onViewDocument(document, index) : undefined}
+                onRetry={onRetryDocument ? () => onRetryDocument(document, index) : undefined}
+              />
+            );
+          })}
         </div>
       </CardContent>
     </Card>

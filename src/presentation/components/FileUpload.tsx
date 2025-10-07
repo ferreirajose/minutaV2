@@ -1,3 +1,4 @@
+// FileUpload.tsx
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,32 +6,34 @@ import { Upload, FileText, Loader2 } from 'lucide-react';
 import ManangerFile from '@/application/ManangerFile';
 import { SelectedFilesList } from '@/components/common/SelectedFilesList';
 import { formatFileSize } from '@/shared/utils';
+import DocumentBase, { DocumentType } from '@/domain/entity/DocumentBase';
 
 interface FileUploadProps {
   acceptedTypes?: string[];
   maxFileSize?: number;
   multiple?: boolean;
-  onFilesSelected?: (files: File[]) => void;
-  onFileView?: (file: File, index: number) => void;
-  onFileRetry?: (file: File, index: number) => void;
+  onDocumentsSelected?: (documents: DocumentBase[]) => void;
+  onDocumentView?: (document: DocumentBase, index: number) => void;
+  onDocumentRetry?: (document: DocumentBase, index: number) => void;
   disabled?: boolean;
+  documentType?: DocumentType;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
   acceptedTypes = ['.pdf', '.html', '.htm', '.txt'],
-  maxFileSize = 10 * 1024 * 1024, // 10MB padrão
+  maxFileSize = 10 * 1024 * 1024,
   multiple = true,
-  onFilesSelected,
-  onFileView,
-  onFileRetry,
-  disabled = false
+  onDocumentsSelected,
+  onDocumentView, // @IMPLEMENTA ESSA FUNÇÃO
+  onDocumentRetry,
+  disabled = false,
+  documentType = DocumentType.DOC
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<number>(0);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<DocumentBase[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Instância da classe DocumentList com os tipos aceitos
   const documentList = useMemo(() => {
     return new ManangerFile(acceptedTypes);
   }, [acceptedTypes]);
@@ -69,79 +72,79 @@ const FileUpload: React.FC<FileUploadProps> = ({
     processFiles(files);
   }, [disabled]);
 
-  // Handler para clique no botão
   const handleUploadButtonClick = useCallback(() => {
     if (!disabled && fileInputRef.current) {
       fileInputRef.current.click();
     }
   }, [disabled]);
 
-  // Handler para input file change
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     processFiles(files);
-    
     // Reset input para permitir selecionar os mesmos arquivos novamente
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
 
-  // Processar e validar arquivos usando DocumentList
+  // Processar arquivos e criar DocumentBase
   const processFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
 
-    // Se não é múltiplo, pega apenas o primeiro arquivo
     const filesToProcess = multiple ? files : [files[0]];
 
-    const validFiles: File[] = [];
+    const validDocuments: DocumentBase[] = [];
     const errors: string[] = [];
 
-    filesToProcess.forEach(file => {
-      // Validar tipo usando DocumentList
+    filesToProcess.forEach((file, index) => {
       const isValidType = documentList.validateFileType(file);
-
       if (!isValidType) {
         errors.push(`Tipo não permitido: ${file.name}`);
         return;
       }
 
-      // Validar tamanho usando DocumentList
       const isValidSize = documentList.validateFileSize(file, maxFileSize);
-
       if (!isValidSize) {
         errors.push(`Arquivo muito grande: ${file.name} (${formatFileSize(file.size)})`);
         return;
       }
 
-      validFiles.push(file);
+      // Criar DocumentBase para cada arquivo válido
+      const document = new DocumentBase(
+        `documento_${Date.now()}_${index}`,
+        file,
+        documentType,
+        null
+      );
+      validDocuments.push(document);
     });
 
-    // Mostrar erros (você pode substituir por um toast/notification)
     if (errors.length > 0) {
       alert('Erros encontrados:\n' + errors.join('\n'));
     }
 
-    if (validFiles.length > 0) {
-      setSelectedFiles(prev => [...prev, ...validFiles]);
-      onFilesSelected?.(validFiles);
+    if (validDocuments.length > 0) {
+      setSelectedDocuments(prev => [...prev, ...validDocuments]);
+      
+      // Chamar callback
+      onDocumentsSelected?.(validDocuments);
       
       // Simular upload
-      setUploadingFiles(prev => prev + validFiles.length);
+      setUploadingFiles(prev => prev + validDocuments.length);
       setTimeout(() => {
-        setUploadingFiles(prev => prev - validFiles.length);
+        setUploadingFiles(prev => prev - validDocuments.length);
       }, 2000);
     }
-  }, [maxFileSize, multiple, onFilesSelected, documentList]);
+  }, [maxFileSize, multiple, onDocumentsSelected, documentList, documentType]);
 
-  // Remover arquivo da lista
-  const removeFile = useCallback((index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  // Remover documento da lista
+  const removeDocument = useCallback((index: number) => {
+    setSelectedDocuments(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Limpar todos os arquivos
-  const clearAllFiles = useCallback(() => {
-    setSelectedFiles([]);
+  // Limpar todos os documentos
+  const clearAllDocuments = useCallback(() => {
+    setSelectedDocuments([]);
   }, []);
 
   const getAcceptedTypesText = (): string => {
@@ -154,7 +157,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className="w-full space-y-4">
-      {/* Input file oculto */}
       <input
         ref={fileInputRef}
         type="file"
@@ -165,7 +167,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         disabled={disabled}
       />
 
-      {/* Área de Drop com Drag/Drop */}
+      {/* Área de Drop */}
       <Card
         className={`transition-all duration-300 cursor-pointer ${
           disabled 
@@ -244,14 +246,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
         </CardContent>
       </Card>
 
-      {/* Lista de arquivos selecionados */}
+      {/* Lista de documentos selecionados */}
       <SelectedFilesList
-        files={selectedFiles}
+        documents={selectedDocuments}
         uploadingFiles={uploadingFiles}
-        onRemoveFile={removeFile}
-        onClearAll={clearAllFiles}
-        onViewFile={onFileView}
-        onRetryFile={onFileRetry}
+        onRemoveDocument={removeDocument}
+        onClearAll={clearAllDocuments}
+        onViewDocument={onDocumentView}
+        onRetryDocument={onDocumentRetry}
         disabled={disabled}
       />
     </div>

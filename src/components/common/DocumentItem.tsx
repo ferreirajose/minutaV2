@@ -1,10 +1,12 @@
+// DocumentItem.tsx
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatFileSize } from '@/shared/utils';
 import { Trash2, Eye, RefreshCw, FileText, File, FileImage } from 'lucide-react';
+import DocumentBase from '@/domain/entity/DocumentBase';
 
 interface DocumentItemProps {
-  document: File;
+  document: DocumentBase; // ✅ Agora recebe DocumentBase
   status?: {
     bgColor: string;
     color: string;
@@ -12,9 +14,9 @@ interface DocumentItemProps {
     icon: React.ReactNode;
   };
   errorMessage?: string;
-  onDelete?: (document: File) => void;
-  onRetry?: (document: File) => void;
-  onView?: (document: File) => void;
+  onDelete?: (document: DocumentBase) => void;
+  onRetry?: (document: DocumentBase) => void;
+  onView?: (document: DocumentBase) => void;
   totalPages?: number;
   totalTokens?: number;
   uploadProgress?: number;
@@ -37,8 +39,9 @@ export function DocumentItem({
   uploadProgress
 }: DocumentItemProps) {
 
-  const getFileTypeIcon = (file: File) => {
-    const extension = file.name.split('.').pop()?.toLowerCase();
+  const getFileTypeIcon = (document: DocumentBase) => {
+    const fileName = document.file.name;
+    const extension = fileName.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'pdf':
         return <FileText className="h-6 w-6 text-red-500" />;
@@ -53,7 +56,7 @@ export function DocumentItem({
         return <File className="h-6 w-6 text-gray-500" />;
     }
   };
-  console.log(document, 'document item');
+
   return (
     <Card className={`transition-all duration-200 ${status.bgColor}`}>
       <CardContent className="p-4">
@@ -64,7 +67,7 @@ export function DocumentItem({
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-medium truncate">
-                {document.name}
+                {document.file.name}
                 {/* {status && (
                   <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
                     ATIVO
@@ -73,11 +76,12 @@ export function DocumentItem({
               </div>
               
               <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2 flex-wrap">
-                <span>{formatFileSize(document.size)}</span>
-                {(totalPages || totalTokens) && (
-                  <span>
-                    • {totalPages} páginas • {totalTokens} tokens
-                  </span>
+                <span>{formatFileSize(document.file.size)}</span>
+                {(totalPages && totalPages > 0) && (
+                  <span>• {totalPages} página{totalPages > 1 ? 's' : ''}</span>
+                )}
+                {(totalTokens && totalTokens > 0) && (
+                  <span>• {totalTokens} token{totalTokens > 1 ? 's' : ''}</span>
                 )}
               </div>
               

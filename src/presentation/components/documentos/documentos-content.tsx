@@ -22,44 +22,25 @@ export function DocumentosContent() {
   //const httpClient = new AxiosAdapter();
   const documentGateway = new DocumentHttpGateway(httpClient, BASE_URL1, AUTH_TOKEN);
 
-  const handleFilesSelected = async (files: File[]) => {
-    
+  const handleDocumentsSelected = async (documents: DocumentBase[]) => {
     try {
-      // Usando Promise.all() para processamento paralelo
-      const docBase = await Promise.all(
-        files.map(async (file: File, idx: number) => {
-          // Simulando uma operação assíncrona
-          // Aqui você pode fazer upload, processamento, etc.
-          await new Promise(resolve => setTimeout(resolve, 100)); // simula delay
-          
-          return new DocumentBase(`documento_${idx}`, file, docType);
-        })
-      );
+      // Agora você recebe DocumentBase diretamente do FileUpload
+      const docBase = documents;
 
-      // Processando cada documento e aguardando a atualização
-      const updatePromises  = docBase.map((doc: DocumentBase) => {
+      // Processando cada documento
+      const updatePromises = docBase.map(async (doc) => {
         const documentUpdate = new DocumentUpdateBase(doc, documentGateway);
-        return documentUpdate.update();
+        const result = await documentUpdate.update();
+
+        console.log(`Documento ${doc.id} atualizado:`, doc.data);
+        return { doc, result };
       });
 
-      // Aguardando todas as atualizações serem concluídas
       await Promise.all(updatePromises);
-      
       console.log('Todos os documentos processados:', docBase);
 
-      // ✅ Aqui você pode fazer algo com os documentos atualizados
-      docBase.forEach(doc => {
-        if (doc.data) {
-          console.log(`Documento ${doc.id} possui dados:`, doc.data);
-          // Acesse as propriedades específicas do DataResponse:
-          // doc.data.texto_processado, doc.data.metadados, etc.
-        } else {
-          console.log(`Documento ${doc.id} não possui dados (erro no processamento)`);
-        }
-      });
-
     } catch (error) {
-      console.error('Erro ao processar arquivos:', error)
+      console.error('Erro ao processar arquivos:', error);
     }
   }
 
@@ -69,9 +50,10 @@ export function DocumentosContent() {
 
       <FileUpload
         acceptedTypes={['.pdf', '.docx', '.txt']}
-        maxFileSize={5 * 1024 * 1024} // 5MB
+        maxFileSize={5 * 1024 * 1024}
         multiple={true}
-        onFilesSelected={handleFilesSelected}
+        onDocumentsSelected={handleDocumentsSelected}
+        documentType={docType}
       />
     </div>
   )
