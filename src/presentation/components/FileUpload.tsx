@@ -1,13 +1,18 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Loader2, X } from 'lucide-react';
+import { Upload, FileText, Loader2 } from 'lucide-react';
+import ManangerFile from '@/application/ManangerFile';
+import { SelectedFilesList } from '@/components/common/SelectedFilesList';
+import { formatFileSize } from '@/shared/utils';
 
 interface FileUploadProps {
   acceptedTypes?: string[];
   maxFileSize?: number;
   multiple?: boolean;
   onFilesSelected?: (files: File[]) => void;
+  onFileView?: (file: File, index: number) => void;
+  onFileRetry?: (file: File, index: number) => void;
   disabled?: boolean;
 }
 
@@ -16,12 +21,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
   maxFileSize = 10 * 1024 * 1024, // 10MB padrão
   multiple = true,
   onFilesSelected,
+  onFileView,
+  onFileRetry,
   disabled = false
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<number>(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Instância da classe DocumentList com os tipos aceitos
+  const documentList = useMemo(() => {
+    return new ManangerFile(acceptedTypes);
+  }, [acceptedTypes]);
 
   // Handlers para Drag and Drop
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -55,7 +67,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
     const files = Array.from(e.dataTransfer.files);
     processFiles(files);
-  }, [disabled, acceptedTypes, maxFileSize, multiple]);
+  }, [disabled]);
 
   // Handler para clique no botão
   const handleUploadButtonClick = useCallback(() => {
@@ -73,9 +85,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [acceptedTypes, maxFileSize, multiple]);
+  }, []);
 
-  // Processar e validar arquivos
+  // Processar e validar arquivos usando DocumentList
   const processFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
 
@@ -86,19 +98,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
     const errors: string[] = [];
 
     filesToProcess.forEach(file => {
-      // Validar tipo
-      const fileExtension = '.' + file.name.toLowerCase().split('.').pop();
-      const isValidType = acceptedTypes.some(type => 
-        type.toLowerCase() === fileExtension
-      );
+      // Validar tipo usando DocumentList
+      const isValidType = documentList.validateFileType(file);
 
       if (!isValidType) {
         errors.push(`Tipo não permitido: ${file.name}`);
         return;
       }
 
-      // Validar tamanho
-      if (file.size > maxFileSize) {
+      // Validar tamanho usando DocumentList
+      const isValidSize = documentList.validateFileSize(file, maxFileSize);
+
+      if (!isValidSize) {
         errors.push(`Arquivo muito grande: ${file.name} (${formatFileSize(file.size)})`);
         return;
       }
@@ -121,7 +132,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         setUploadingFiles(prev => prev - validFiles.length);
       }, 2000);
     }
-  }, [acceptedTypes, maxFileSize, multiple, onFilesSelected]);
+  }, [maxFileSize, multiple, onFilesSelected, documentList]);
 
   // Remover arquivo da lista
   const removeFile = useCallback((index: number) => {
@@ -133,15 +144,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
     setSelectedFiles([]);
   }, []);
 
-  // Utilitários
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   const getAcceptedTypesText = (): string => {
     return acceptedTypes.map(type => type.replace('.', '').toUpperCase()).join(', ');
   };
@@ -151,7 +153,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4">
       {/* Input file oculto */}
       <input
         ref={fileInputRef}
@@ -165,7 +167,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
       {/* Área de Drop com Drag/Drop */}
       <Card
-        className={`mb-4 transition-all duration-300 cursor-pointer ${
+        className={`transition-all duration-300 cursor-pointer ${
           disabled 
             ? 'opacity-50 cursor-not-allowed' 
             : isDragOver
@@ -243,49 +245,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
       </Card>
 
       {/* Lista de arquivos selecionados */}
-      {selectedFiles.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-medium">Arquivos selecionados ({selectedFiles.length})</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearAllFiles}
-                disabled={disabled}
-              >
-                Limpar todos
-              </Button>
-            </div>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {selectedFiles.map((file, index) => (
-                <div
-                  key={`${file.name}-${index}`}
-                  className="flex items-center justify-between p-2 border rounded-lg"
-                >
-                  <div className="flex items-center space-x-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(file.size)}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                    disabled={disabled}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <SelectedFilesList
+        files={selectedFiles}
+        uploadingFiles={uploadingFiles}
+        onRemoveFile={removeFile}
+        onClearAll={clearAllFiles}
+        onViewFile={onFileView}
+        onRetryFile={onFileRetry}
+        disabled={disabled}
+      />
     </div>
   );
 };

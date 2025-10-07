@@ -1,4 +1,4 @@
-export interface DataResponse {
+export type DataResponse = {
   uuid_documento: string;
   arquivo_original: string;
   titulo_arquivo: string;
@@ -8,7 +8,7 @@ export interface DataResponse {
   paginas: Pagina[];
 }
 
-export interface Pagina {
+export type Pagina = {
   fonte: string;
   numero_pagina: number;
   quantidade_tokens: number;
