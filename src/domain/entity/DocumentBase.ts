@@ -6,7 +6,7 @@ export enum DocumentType {
     JURISPRUDENCIA = 'JURISPRUDENCIA'
 }
 
-export class DocumentosBase {
+export default class DocumentBase {
     public readonly id: string;
     public file: File;
     public type: DocumentType;
