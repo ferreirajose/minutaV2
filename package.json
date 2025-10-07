@@ -14,7 +14,7 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:doc": "jest src/test/DocumentBase",
-    "test:docList": "jest src/test/DocumentList",
+    "test:manangerFile": "jest src/test/ManangerFile",
     "test:file": "jest src/test/FileUpload"
   },
   "dependencies": {

@@ -1,21 +1,21 @@
-import DocumentList from "@/application/DocumentList";
+import ManangerFile from "@/application/ManangerFile";
 import { createMockFile } from "./utils-test";
 
-describe("DocumentList", () => {
-  let documentList: DocumentList;
+describe("ManangerFile", () => {
+  let manangerFile: ManangerFile;
 
   beforeEach(() => {
-    documentList = new DocumentList();
+    manangerFile = new ManangerFile();
   });
 
-  describe("DocumentList Validar Tamanho", () => {
+  describe("ManangerFile Validar Tamanho", () => {
     it("Deve retornar true quando o arquivo for menor que o tamanho máximo 5MB", () => {
       // Arrange
       const smallFile = createMockFile("small.pdf", 5 * 1024 * 1024, "pdf"); // 5MB
       const maxSize = 10 * 1024 * 1024; // 10MB
 
       // Act
-      const result = documentList.validateFileSize(smallFile, maxSize);
+      const result = manangerFile.validateFileSize(smallFile, maxSize);
 
       // Assert
       expect(result).toBe(true);
@@ -31,7 +31,7 @@ describe("DocumentList", () => {
       const maxSize = 10 * 1024 * 1024; // 10MB
 
       // Act
-      const result = documentList.validateFileSize(exactSizeFile, maxSize);
+      const result = manangerFile.validateFileSize(exactSizeFile, maxSize);
 
       // Assert
       expect(result).toBe(true);
@@ -43,7 +43,7 @@ describe("DocumentList", () => {
       const maxSize = 10 * 1024 * 1024; // 10MB
 
       // Act
-      const result = documentList.validateFileSize(largeFile, maxSize);
+      const result = manangerFile.validateFileSize(largeFile, maxSize);
 
       // Assert
       expect(result).toBe(false);
@@ -55,7 +55,7 @@ describe("DocumentList", () => {
       const maxSize = 10 * 1024 * 1024; // 10MB
 
       // Act
-      const result = documentList.validateFileSize(tinyFile, maxSize);
+      const result = manangerFile.validateFileSize(tinyFile, maxSize);
 
       // Assert
       expect(result).toBe(true);
@@ -67,20 +67,20 @@ describe("DocumentList", () => {
       const maxSize = 0;
 
       // Act
-      const result = documentList.validateFileSize(file, maxSize);
+      const result = manangerFile.validateFileSize(file, maxSize);
 
       // Assert
       expect(result).toBe(false);
     });
   });
 
-  describe("DocumentList Validar Tipo de Arquivo", () => {
+  describe("ManangerFile Validar Tipo de Arquivo", () => {
     it("Deve retornar true para arquivo PDF válido (extensão e mime-type)", () => {
       // Arrange
       const pdfFile = createMockFile("documento.pdf", 1000, "application/pdf");
 
       // Act
-      const result = documentList.validateFileType(pdfFile);
+      const result = manangerFile.validateFileType(pdfFile);
 
       // Assert
       expect(result).toBe(true);
@@ -95,7 +95,7 @@ describe("DocumentList", () => {
       );
 
       // Act
-      const result = documentList.validateFileType(fakePdfFile);
+      const result = manangerFile.validateFileType(fakePdfFile);
 
       // Assert
       expect(result).toBe(false);
@@ -106,7 +106,7 @@ describe("DocumentList", () => {
       const noMimeFile = createMockFile("documento.pdf", 1000, "");
 
       // Act
-      const result = documentList.validateFileType(noMimeFile);
+      const result = manangerFile.validateFileType(noMimeFile);
 
       // Assert
       expect(result).toBe(false);
@@ -121,7 +121,7 @@ describe("DocumentList", () => {
       );
 
       // Act
-      const result = documentList.validateFileType(docxFile);
+      const result = manangerFile.validateFileType(docxFile);
 
       // Assert
       expect(result).toBe(true);
@@ -136,7 +136,7 @@ describe("DocumentList", () => {
       );
 
       // Act
-      const result = documentList.validateFileType(docFile);
+      const result = manangerFile.validateFileType(docFile);
 
       // Assert
       expect(result).toBe(true);
