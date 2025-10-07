@@ -1,33 +1,28 @@
 "use client"
 
-//import { CreateDocumentFactory } from "@/application/CreateDocument";
-import { FileUpload } from "../FileUpload"
-import { DocumentType } from "../../../domain/entity/Documentos";
-import { DocumentosBase } from "../../../domain/entity/Documentos";
+import FileUpload from "../FileUpload"
 
 export function DocumentosContent() {
-  const handleFilesSelected = (documents: DocumentosBase[]) => {
+  const handleFilesSelected = (documents: any) => {
     console.log('Documentos selecionados:', documents)
     
     // Usando a factory
     documents.forEach(doc => {
           console.log('Documentos selecionados:', doc)
-
-      //const createdDoc = new CreateDocumentFactory().execute(doc)
     })
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-5xl mx-auto">
       <h1 className="text-2xl font-semibold mb-6">Documentos</h1>
-      
+
       <FileUpload
-        onFilesSelected={handleFilesSelected}
-        acceptedFileTypes=".pdf,.doc,.docx,.jpg,.png"
-        maxFileSize={2 * 1024 * 1024} // 2MB
-        documentType={DocumentType.DOC}
+        acceptedTypes={['.pdf', '.docx', '.txt']}
+        maxFileSize={5 * 1024 * 1024} // 5MB
         multiple={true}
+        onFilesSelected={handleFilesSelected}
       />
+
     </div>
   )
 }

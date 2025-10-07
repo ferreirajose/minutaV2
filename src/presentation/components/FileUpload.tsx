@@ -1,220 +1,293 @@
-import type { DataResponse } from "@/interface/documentos-base"
-import { DocumentosBase, DocumentType } from "../../domain/entity/Documentos"
-import { useFileUpload } from "@/hooks/use-upload"
-import { CreateDocument } from "@/application/CreateDocument"
+import React, { useState, useRef, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Upload, FileText, Loader2, X } from 'lucide-react';
 
 interface FileUploadProps {
-  onFilesSelected: (documents: DocumentosBase[]) => void
-  acceptedFileTypes?: string
-  maxFileSize?: number // em bytes
-  multiple?: boolean
-  documentType: DocumentType // Tipo padrão para os documentos
+  acceptedTypes?: string[];
+  maxFileSize?: number;
+  multiple?: boolean;
+  onFilesSelected?: (files: File[]) => void;
+  disabled?: boolean;
 }
 
-// Funções de validação
-export const validateFileType = (file: File, acceptedTypes: string): boolean => {
-  if (acceptedTypes === '*/*') return true
-  
-  const accepted = acceptedTypes.split(',').map(type => type.trim())
-  return accepted.some(type => {
-    if (type.startsWith('.')) {
-      // Validação por extensão (.pdf, .jpg, etc)
-      return file.name.toLowerCase().endsWith(type.toLowerCase())
-    } else {
-      // Validação por MIME type (image/*, application/pdf, etc)
-      if (type.endsWith('/*')) {
-        const category = type.split('/')[0]
-        return file.type.startsWith(category + '/')
-      }
-      return file.type === type
-    }
-  })
-}
-
-export const validateFileSize = (file: File, maxSize: number): boolean => {
-  return file.size <= maxSize
-}
-
-// Função para criar DocumentosBase a partir de Files
-// const createDocumentosBase = (files: File[], documentType: DocumentType, data?: Partial<DataResponse> | null): DocumentosBase[] => {
-//   return files.map(file => {
-//     const id = Math.random().toString(36).substr(2, 9)
-//     return new DocumentosBase(id, file, documentType, data)
-//   })
-// }
-
-export function FileUpload({
-  onFilesSelected,
-  acceptedFileTypes = '*/*',
-  maxFileSize = 5 * 1024 * 1024, // 5MB
+const FileUpload: React.FC<FileUploadProps> = ({
+  acceptedTypes = ['.pdf', '.html', '.htm', '.txt'],
+  maxFileSize = 10 * 1024 * 1024, // 10MB padrão
   multiple = true,
-  documentType
-}: FileUploadProps) {
-  const {
-    uploadedDocuments,
-    isDragging,
-    fileInputRef,
-    addDocuments,
-    removeDocument,
-    setIsDragging
-  } = useFileUpload()
+  onFilesSelected,
+  disabled = false
+}) => {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<number>(0);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (files: FileList | null) => {
-    if (!files) return
+  // Handlers para Drag and Drop
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) {
+      setIsDragOver(true);
+    }
+  }, [disabled]);
 
-    const validFiles: File[] = []
-    const invalidFiles: string[] = []
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
 
-    Array.from(files).forEach(file => {
-      const isTypeValid = validateFileType(file, acceptedFileTypes)
-      const isSizeValid = validateFileSize(file, maxFileSize)
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled) {
+      setIsDragOver(true);
+    }
+  }, [disabled]);
 
-      if (isTypeValid && isSizeValid) {
-        validFiles.push(file)
-      } else {
-        let errorMsg = `${file.name}: `
-        if (!isTypeValid) errorMsg += `Tipo não permitido. `
-        if (!isSizeValid) errorMsg += `Tamanho máximo: ${maxFileSize / 1024 / 1024}MB`
-        invalidFiles.push(errorMsg)
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    if (disabled) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
+  }, [disabled, acceptedTypes, maxFileSize, multiple]);
+
+  // Handler para clique no botão
+  const handleUploadButtonClick = useCallback(() => {
+    if (!disabled && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, [disabled]);
+
+  // Handler para input file change
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    processFiles(files);
+    
+    // Reset input para permitir selecionar os mesmos arquivos novamente
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [acceptedTypes, maxFileSize, multiple]);
+
+  // Processar e validar arquivos
+  const processFiles = useCallback((files: File[]) => {
+    if (files.length === 0) return;
+
+    // Se não é múltiplo, pega apenas o primeiro arquivo
+    const filesToProcess = multiple ? files : [files[0]];
+
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    filesToProcess.forEach(file => {
+      // Validar tipo
+      const fileExtension = '.' + file.name.toLowerCase().split('.').pop();
+      const isValidType = acceptedTypes.some(type => 
+        type.toLowerCase() === fileExtension
+      );
+
+      if (!isValidType) {
+        errors.push(`Tipo não permitido: ${file.name}`);
+        return;
       }
-    })
 
-    if (invalidFiles.length > 0) {
-      alert(`Arquivos rejeitados:\n${invalidFiles.join('\n')}`)
+      // Validar tamanho
+      if (file.size > maxFileSize) {
+        errors.push(`Arquivo muito grande: ${file.name} (${formatFileSize(file.size)})`);
+        return;
+      }
+
+      validFiles.push(file);
+    });
+
+    // Mostrar erros (você pode substituir por um toast/notification)
+    if (errors.length > 0) {
+      alert('Erros encontrados:\n' + errors.join('\n'));
     }
 
     if (validFiles.length > 0) {
-      // Criar DocumentosBase a partir dos arquivos válidos
-      // const documentos = new CreateDocument().execute(validFiles, documentType) //createDocumentosBase(validFiles, documentType)
-      // addDocuments(documentos)
-      // onFilesSelected(documentos)
+      setSelectedFiles(prev => [...prev, ...validFiles]);
+      onFilesSelected?.(validFiles);
+      
+      // Simular upload
+      setUploadingFiles(prev => prev + validFiles.length);
+      setTimeout(() => {
+        setUploadingFiles(prev => prev - validFiles.length);
+      }, 2000);
     }
-  }
+  }, [acceptedTypes, maxFileSize, multiple, onFilesSelected]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileSelect(e.target.files)
-    e.target.value = '' // Reset input
-  }
+  // Remover arquivo da lista
+  const removeFile = useCallback((index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }
+  // Limpar todos os arquivos
+  const clearAllFiles = useCallback(() => {
+    setSelectedFiles([]);
+  }, []);
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }
+  // Utilitários
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    handleFileSelect(e.dataTransfer.files)
-  }
+  const getAcceptedTypesText = (): string => {
+    return acceptedTypes.map(type => type.replace('.', '').toUpperCase()).join(', ');
+  };
 
-  const openFileDialog = () => {
-    fileInputRef.current?.click()
-  }
-
-  console.log(uploadedDocuments, 'uploadedDocuments')
+  const getTotalUploadingFiles = (): number => {
+    return uploadingFiles;
+  };
 
   return (
     <div className="w-full">
-      {/* Input file hidden */}
+      {/* Input file oculto */}
       <input
-        type="file"
         ref={fileInputRef}
-        onChange={handleInputChange}
-        accept={acceptedFileTypes}
+        type="file"
+        accept={acceptedTypes.join(',')}
         multiple={multiple}
+        onChange={handleFileChange}
         className="hidden"
+        disabled={disabled}
       />
 
-      {/* Área de Drag & Drop */}
-      <div
-        className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-all duration-200
-          ${isDragging 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-          }
-        `}
-        onDragOver={handleDragOver}
+      {/* Área de Drop com Drag/Drop */}
+      <Card
+        className={`mb-4 transition-all duration-300 cursor-pointer ${
+          disabled 
+            ? 'opacity-50 cursor-not-allowed' 
+            : isDragOver
+              ? "border-primary border-2 bg-primary/10 shadow-lg scale-[1.02]"
+              : "border-dashed border-2 hover:border-primary/50 hover:bg-muted/20"
+        }`}
+        onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
         onDrop={handleDrop}
-        onClick={openFileDialog}
+        onClick={!isDragOver && !disabled ? handleUploadButtonClick : undefined}
       >
-        <div className="flex flex-col items-center space-y-3">
-          <UploadIcon />
-          <div>
-            <p className="font-medium text-gray-700">
-              Arraste arquivos aqui ou clique para selecionar
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Tipo: {documentType}
-              <br />
-              Tipos permitidos: {acceptedFileTypes === '*/*' ? 'Todos' : acceptedFileTypes}
-              <br />
-              Tamanho máximo: {maxFileSize / 1024 / 1024}MB
-            </p>
+        <CardContent className="p-8 flex flex-col items-center">
+          <div
+            className={`p-4 rounded-full mb-6 transition-all duration-300 ${
+              isDragOver ? "bg-primary/20 scale-110" : "bg-primary/10"
+            }`}
+          >
+            {isDragOver ? (
+              <Upload className="h-10 w-10 text-primary animate-bounce" />
+            ) : (
+              <FileText className="h-10 w-10 text-primary" />
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Lista de documentos */}
-      {uploadedDocuments.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <h3 className="font-medium text-gray-900">Documentos selecionados:</h3>
-          {uploadedDocuments.map(({ id, document }) => (
-            <div
-              key={id}
-              className="flex items-center justify-between p-3 bg-white border rounded-lg"
-            >
-              <div className="flex items-center space-x-3">
-                <FileIcon /> 
-                <div>
-                  <span className="text-sm text-gray-700 block">{document.file.name}</span>
-                  <span className="text-xs text-gray-500">
-                    Tipo: {document.type} | {document.formatFileSize()} 
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => removeDocument(id)}
-                className="text-red-500 hover:text-red-700"
+          <h2
+            className={`text-xl font-medium mb-2 transition-all duration-300 ${
+              isDragOver ? "text-primary scale-105" : ""
+            }`}
+          >
+            {isDragOver ? "Solte os arquivos aqui!" : "Arraste e solte os documentos aqui"}
+          </h2>
+
+          <p className="text-muted-foreground mb-6 text-center max-w-lg">
+            {isDragOver
+              ? "Solte os arquivos para fazer o upload automático"
+              : "Faça upload dos documentos do processo: petições, decisões, peças processuais etc."}
+          </p>
+
+          {!isDragOver && (
+            <>
+              <Button
+                variant="outline"
+                className="flex items-center bg-transparent mb-4"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUploadButtonClick();
+                }}
+                disabled={disabled || getTotalUploadingFiles() > 0}
               >
-                <TrashIcon />
-              </button>
+                {getTotalUploadingFiles() > 0 ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <span>Processando {getTotalUploadingFiles()} arquivo(s)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    <span>Selecionar Arquivos</span>
+                  </>
+                )}
+              </Button>
+
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-2">
+                  <strong>Tipos aceitos:</strong> {getAcceptedTypesText()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Tamanho máximo:</strong> <span data-testid="maxSize">{formatFileSize(maxFileSize)}</span> por arquivo
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Lista de arquivos selecionados */}
+      {selectedFiles.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium">Arquivos selecionados ({selectedFiles.length})</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFiles}
+                disabled={disabled}
+              >
+                Limpar todos
+              </Button>
             </div>
-          ))}
-        </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {selectedFiles.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="flex items-center justify-between p-2 border rounded-lg"
+                >
+                  <div className="flex items-center space-x-3">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile(index)}
+                    disabled={disabled}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
-  )
-}
+  );
+};
 
-// Ícones simplificados
-function UploadIcon() {
-  return (
-    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-    </svg>
-  )
-}
-
-function FileIcon() {
-  return (
-    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-    </svg>
-  )
-}
-
-function TrashIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-    </svg>
-  )
-}
+export default FileUpload;
