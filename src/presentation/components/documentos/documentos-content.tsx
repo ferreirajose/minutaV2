@@ -17,7 +17,7 @@ const AUTH_TOKEN = import.meta.env.VITE_API_AUTH_TOKEN;
 export function DocumentosContent() {
   const docType = DocumentType.DOC;
   const [selectedDocuments, setSelectedDocuments] = useState<DocumentBase[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState<number>(0);
+  const [processingDocuments, setProcessingDocuments] = useState<Set<string>>(new Set());
 
   // Criando o FetchAdapter
   const httpClient = new FetchAdapter();
@@ -31,29 +31,32 @@ export function DocumentosContent() {
       // Adiciona os novos documentos à lista
       setSelectedDocuments(prev => [...prev, ...documents]);
       
-      // Inicia o contador de upload
-      setUploadingFiles(prev => prev + documents.length);
+      // Marca todos os novos documentos como processando
+      setProcessingDocuments(prev => {
+        const newSet = new Set(prev);
+        documents.forEach(doc => newSet.add(doc.id));
+        return newSet;
+      });
 
       // Processando cada documento
-      const updatePromises = documents.map(async (doc, index) => {
+      const updatePromises = documents.map(async (doc) => {
         try {
           const documentUpdate = new DocumentUpdateBase(doc, documentGateway);
           const result = await documentUpdate.update();
 
           console.log(`Documento ${doc.id} atualizado:`, doc.data);
           
-          // Atualiza o documento na lista com os dados processados
-          const globalIndex = selectedDocuments.length + index;
-          setSelectedDocuments(prev => {
-            const updated = [...prev];
-            updated[globalIndex] = doc; // doc já foi atualizado pelo DocumentUpdateBase
-            return updated;
-          });
-
           return { doc, result, success: true };
         } catch (error) {
           console.error(`Erro ao processar documento ${doc.id}:`, error);
           return { doc, error, success: false };
+        } finally {
+          // Remove o documento do conjunto de processamento
+          setProcessingDocuments(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(doc.id);
+            return newSet;
+          });
         }
       });
 
@@ -62,20 +65,38 @@ export function DocumentosContent() {
 
     } catch (error) {
       console.error('Erro ao processar arquivos:', error);
-    } finally {
-      // Finaliza o upload
-      setUploadingFiles(prev => prev - documents.length);
+      // Remove todos os documentos do conjunto de processamento em caso de erro geral
+      setProcessingDocuments(prev => {
+        const newSet = new Set(prev);
+        documents.forEach(doc => newSet.delete(doc.id));
+        return newSet;
+      });
     }
   }
 
   // Remover documento da lista
   const removeDocument = (index: number) => {
-    setSelectedDocuments(prev => prev.filter((_, i) => i !== index));
+    setSelectedDocuments(prev => {
+      const documentToRemove = prev[index];
+      const newDocuments = prev.filter((_, i) => i !== index);
+      
+      // Remove também do conjunto de processamento se estiver lá
+      if (documentToRemove) {
+        setProcessingDocuments(prevSet => {
+          const newSet = new Set(prevSet);
+          newSet.delete(documentToRemove.id);
+          return newSet;
+        });
+      }
+      
+      return newDocuments;
+    });
   };
 
   // Limpar todos os documentos
   const clearAllDocuments = () => {
     setSelectedDocuments([]);
+    setProcessingDocuments(new Set());
   };
 
   // Visualizar documento
@@ -87,7 +108,12 @@ export function DocumentosContent() {
   // Tentar novamente o upload
   const handleRetryDocument = async (document: DocumentBase, index: number) => {
     try {
-      setUploadingFiles(prev => prev + 1);
+      // Marca apenas este documento como processando
+      setProcessingDocuments(prev => {
+        const newSet = new Set(prev);
+        newSet.add(document.id);
+        return newSet;
+      });
       
       const documentUpdate = new DocumentUpdateBase(document, documentGateway);
       const result = await documentUpdate.update();
@@ -103,9 +129,17 @@ export function DocumentosContent() {
       console.error('Erro ao reprocessar documento:', error);
       // Mantém o documento na lista para permitir nova tentativa
     } finally {
-      setUploadingFiles(prev => prev - 1);
+      // Remove apenas este documento do conjunto de processamento
+      setProcessingDocuments(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(document.id);
+        return newSet;
+      });
     }
   };
+
+  // Contador de documentos em processamento (apenas para exibição)
+  const uploadingFiles = processingDocuments.size;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -122,6 +156,7 @@ export function DocumentosContent() {
       <SelectedFilesList
         documents={selectedDocuments}
         uploadingFiles={uploadingFiles}
+        processingDocuments={processingDocuments}
         onRemoveDocument={removeDocument}
         onClearAll={clearAllDocuments}
         onViewDocument={handleViewDocument}
