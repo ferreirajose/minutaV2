@@ -35,22 +35,35 @@ export function DocumentosContent() {
       setUploadingFiles(prev => prev + documents.length);
 
       // Processando cada documento
-      const updatePromises = documents.map(async (doc) => {
-        const documentUpdate = new DocumentUpdateBase(doc, documentGateway);
-        const result = await documentUpdate.update();
+      const updatePromises = documents.map(async (doc, index) => {
+        try {
+          const documentUpdate = new DocumentUpdateBase(doc, documentGateway);
+          const result = await documentUpdate.update();
 
-        console.log(`Documento ${doc.id} atualizado:`, doc.data);
-        return { doc, result };
+          console.log(`Documento ${doc.id} atualizado:`, doc.data);
+          
+          // Atualiza o documento na lista com os dados processados
+          const globalIndex = selectedDocuments.length + index;
+          setSelectedDocuments(prev => {
+            const updated = [...prev];
+            updated[globalIndex] = doc; // doc já foi atualizado pelo DocumentUpdateBase
+            return updated;
+          });
+
+          return { doc, result, success: true };
+        } catch (error) {
+          console.error(`Erro ao processar documento ${doc.id}:`, error);
+          return { doc, error, success: false };
+        }
       });
 
       await Promise.all(updatePromises);
       console.log('Todos os documentos processados:', documents);
 
-      // Finaliza o upload
-      setUploadingFiles(prev => prev - documents.length);
-
     } catch (error) {
       console.error('Erro ao processar arquivos:', error);
+    } finally {
+      // Finaliza o upload
       setUploadingFiles(prev => prev - documents.length);
     }
   }
@@ -86,9 +99,10 @@ export function DocumentosContent() {
       updatedDocuments[index] = document;
       setSelectedDocuments(updatedDocuments);
 
-      setUploadingFiles(prev => prev - 1);
     } catch (error) {
       console.error('Erro ao reprocessar documento:', error);
+      // Mantém o documento na lista para permitir nova tentativa
+    } finally {
       setUploadingFiles(prev => prev - 1);
     }
   };

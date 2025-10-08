@@ -2,7 +2,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DocumentItem } from './DocumentItem';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, AlertCircle } from 'lucide-react';
 import DocumentBase from '@/domain/entity/DocumentBase';
 
 interface SelectedFilesListProps {
@@ -33,7 +33,8 @@ export function SelectedFilesList({
         bgColor: 'bg-blue-50',
         color: 'text-blue-600',
         text: 'Processando...',
-        icon: <Loader2 className="h-4 w-4 animate-spin" />
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        hasError: false
       };
     }
 
@@ -43,15 +44,18 @@ export function SelectedFilesList({
         bgColor: 'bg-green-50',
         color: 'text-green-600',
         text: 'Processado com sucesso',
-        icon: <FileText className="h-4 w-4" />
+        icon: <FileText className="h-4 w-4" />,
+        hasError: false
       };
     }
 
+    // Se não tem dados e não está processando, considera como erro
     return {
-      bgColor: 'bg-yellow-50',
-      color: 'text-yellow-600',
-      text: 'Aguardando processamento',
-      icon: <FileText className="h-4 w-4" />
+      bgColor: 'bg-red-50',
+      color: 'text-red-600',
+      text: 'Error no processamento',
+      icon: <AlertCircle className="h-4 w-4" />,
+      hasError: true
     };
   };
 
@@ -109,7 +113,7 @@ export function SelectedFilesList({
                 totalTokens={documentInfo.totalTokens}
                 onDelete={() => onRemoveDocument(index)}
                 onView={onViewDocument ? () => onViewDocument(document, index) : undefined}
-                onRetry={onRetryDocument ? () => onRetryDocument(document, index) : undefined}
+                onRetry={status.hasError && onRetryDocument ? () => onRetryDocument(document, index) : undefined}
               />
             );
           })}
