@@ -1,19 +1,23 @@
+// documentos-content.tsx
 "use client"
 
+import { useState } from 'react';
 import DocumentBase, { DocumentType } from "@/domain/entity/DocumentBase";
 import FileUpload from "../FileUpload"
 import DocumentHttpGateway from "@/gateways/DocumentHttpGateway";
 import AxiosAdapter from "@/infra/AxiosAdapter";
 import DocumentUpdateBase from "@/application/DocumentUpdate";
 import FetchAdapter from "@/infra/FetchAdapter";
+import { SelectedFilesList } from "@/components/common/SelectedFilesList";
 
 const BASE_URL = import.meta.env.VITE_API_URL_MINUTA;
 const BASE_URL1 = import.meta.env.VITE_API_URL;
-
 const AUTH_TOKEN = import.meta.env.VITE_API_AUTH_TOKEN;
 
 export function DocumentosContent() {
   const docType = DocumentType.DOC;
+  const [selectedDocuments, setSelectedDocuments] = useState<DocumentBase[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState<number>(0);
 
   // Criando o FetchAdapter
   const httpClient = new FetchAdapter();
@@ -24,11 +28,14 @@ export function DocumentosContent() {
 
   const handleDocumentsSelected = async (documents: DocumentBase[]) => {
     try {
-      // Agora você recebe DocumentBase diretamente do FileUpload
-      const docBase = documents;
+      // Adiciona os novos documentos à lista
+      setSelectedDocuments(prev => [...prev, ...documents]);
+      
+      // Inicia o contador de upload
+      setUploadingFiles(prev => prev + documents.length);
 
       // Processando cada documento
-      const updatePromises = docBase.map(async (doc) => {
+      const updatePromises = documents.map(async (doc) => {
         const documentUpdate = new DocumentUpdateBase(doc, documentGateway);
         const result = await documentUpdate.update();
 
@@ -37,23 +44,74 @@ export function DocumentosContent() {
       });
 
       await Promise.all(updatePromises);
-      console.log('Todos os documentos processados:', docBase);
+      console.log('Todos os documentos processados:', documents);
+
+      // Finaliza o upload
+      setUploadingFiles(prev => prev - documents.length);
 
     } catch (error) {
       console.error('Erro ao processar arquivos:', error);
+      setUploadingFiles(prev => prev - documents.length);
     }
   }
 
+  // Remover documento da lista
+  const removeDocument = (index: number) => {
+    setSelectedDocuments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Limpar todos os documentos
+  const clearAllDocuments = () => {
+    setSelectedDocuments([]);
+  };
+
+  // Visualizar documento
+  const handleViewDocument = (document: DocumentBase, index: number) => {
+    console.log('Visualizar documento:', document, index);
+    // Implementar lógica de visualização aqui
+  };
+
+  // Tentar novamente o upload
+  const handleRetryDocument = async (document: DocumentBase, index: number) => {
+    try {
+      setUploadingFiles(prev => prev + 1);
+      
+      const documentUpdate = new DocumentUpdateBase(document, documentGateway);
+      const result = await documentUpdate.update();
+
+      console.log(`Documento ${document.id} reprocessado:`, document.data);
+      
+      // Atualiza o documento na lista
+      const updatedDocuments = [...selectedDocuments];
+      updatedDocuments[index] = document;
+      setSelectedDocuments(updatedDocuments);
+
+      setUploadingFiles(prev => prev - 1);
+    } catch (error) {
+      console.error('Erro ao reprocessar documento:', error);
+      setUploadingFiles(prev => prev - 1);
+    }
+  };
+
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto space-y-6">
       <h1 className="text-2xl font-semibold mb-6">Documentos</h1>
 
       <FileUpload
-        acceptedTypes={['.pdf', '.docx', '.txt']}
-        maxFileSize={5 * 1024 * 1024}
+        maxFileSize={10 * 1024 * 1024}
         multiple={true}
         onDocumentsSelected={handleDocumentsSelected}
         documentType={docType}
+        uploadingFiles={uploadingFiles}
+      />
+
+      <SelectedFilesList
+        documents={selectedDocuments}
+        uploadingFiles={uploadingFiles}
+        onRemoveDocument={removeDocument}
+        onClearAll={clearAllDocuments}
+        onViewDocument={handleViewDocument}
+        onRetryDocument={handleRetryDocument}
       />
     </div>
   )
