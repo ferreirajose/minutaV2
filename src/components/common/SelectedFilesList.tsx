@@ -8,6 +8,7 @@ import DocumentBase from '@/domain/entity/DocumentBase';
 interface SelectedFilesListProps {
   documents: DocumentBase[];
   uploadingFiles?: number;
+  processingDocuments?: Set<string>;
   onRemoveDocument: (index: number) => void;
   onClearAll: () => void;
   onViewDocument?: (document: DocumentBase, index: number) => void;
@@ -18,6 +19,7 @@ interface SelectedFilesListProps {
 export function SelectedFilesList({
   documents,
   uploadingFiles = 0,
+  processingDocuments = new Set(),
   onRemoveDocument,
   onClearAll,
   onViewDocument,
@@ -26,15 +28,16 @@ export function SelectedFilesList({
 }: SelectedFilesListProps) {
 
   const getDocumentStatus = (document: DocumentBase, index: number) => {
-    const isUploading = uploadingFiles > 0;
+    const isProcessing = processingDocuments.has(document.id);
     
-    if (isUploading) {
+    if (isProcessing) {
       return {
         bgColor: 'bg-blue-50',
         color: 'text-blue-600',
         text: 'Processando...',
         icon: <Loader2 className="h-4 w-4 animate-spin" />,
-        hasError: false
+        hasError: false,
+        isProcessing: true
       };
     }
 
@@ -45,7 +48,8 @@ export function SelectedFilesList({
         color: 'text-green-600',
         text: 'Processado com sucesso',
         icon: <FileText className="h-4 w-4" />,
-        hasError: false
+        hasError: false,
+        isProcessing: false
       };
     }
 
@@ -53,15 +57,15 @@ export function SelectedFilesList({
     return {
       bgColor: 'bg-red-50',
       color: 'text-red-600',
-      text: 'Error no processamento',
+      text: 'Falha no processamento',
       icon: <AlertCircle className="h-4 w-4" />,
-      hasError: true
+      hasError: true,
+      isProcessing: false
     };
   };
 
   // Obter totalPages e totalTokens do DocumentBase
   const getDocumentInfo = (document: DocumentBase) => {
-    console.log('Document data:', document);
     if (document.data) {
       const data = document.data;
       return {
@@ -99,7 +103,7 @@ export function SelectedFilesList({
           </Button>
         </div>
         
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+        <div className="space-y-3 overflow-y-auto">
           {documents.map((document, index) => {
             const documentInfo = getDocumentInfo(document);
             const status = getDocumentStatus(document, index);
