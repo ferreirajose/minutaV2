@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload, FileText, Loader2 } from 'lucide-react';
 import ManangerFile from '@/application/ManangerFile';
-import { SelectedFilesList } from '@/components/common/SelectedFilesList';
 import { formatFileSize } from '@/shared/utils';
 import DocumentBase, { DocumentType } from '@/domain/entity/DocumentBase';
 
@@ -13,10 +12,9 @@ interface FileUploadProps {
   maxFileSize?: number;
   multiple?: boolean;
   onDocumentsSelected?: (documents: DocumentBase[]) => void;
-  onDocumentView?: (document: DocumentBase, index: number) => void;
-  onDocumentRetry?: (document: DocumentBase, index: number) => void;
   disabled?: boolean;
   documentType?: DocumentType;
+  uploadingFiles?: number;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -24,14 +22,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
   maxFileSize = 10 * 1024 * 1024,
   multiple = true,
   onDocumentsSelected,
-  onDocumentView, // @IMPLEMENTA ESSA FUNÇÃO
-  onDocumentRetry,
   disabled = false,
-  documentType = DocumentType.DOC
+  documentType = DocumentType.DOC,
+  uploadingFiles = 0
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState<number>(0);
-  const [selectedDocuments, setSelectedDocuments] = useState<DocumentBase[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const documentList = useMemo(() => {
@@ -124,28 +119,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
 
     if (validDocuments.length > 0) {
-      setSelectedDocuments(prev => [...prev, ...validDocuments]);
-      
-      // Chamar callback
+      // Chamar callback com os documentos processados
       onDocumentsSelected?.(validDocuments);
-      
-      // Simular upload
-      setUploadingFiles(prev => prev + validDocuments.length);
-      setTimeout(() => {
-        setUploadingFiles(prev => prev - validDocuments.length);
-      }, 2000);
     }
   }, [maxFileSize, multiple, onDocumentsSelected, documentList, documentType]);
-
-  // Remover documento da lista
-  const removeDocument = useCallback((index: number) => {
-    setSelectedDocuments(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  // Limpar todos os documentos
-  const clearAllDocuments = useCallback(() => {
-    setSelectedDocuments([]);
-  }, []);
 
   const getAcceptedTypesText = (): string => {
     return acceptedTypes.map(type => type.replace('.', '').toUpperCase()).join(', ');
@@ -156,7 +133,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full">
       <input
         ref={fileInputRef}
         type="file"
@@ -245,17 +222,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
           )}
         </CardContent>
       </Card>
-
-      {/* Lista de documentos selecionados */}
-      <SelectedFilesList
-        documents={selectedDocuments}
-        uploadingFiles={uploadingFiles}
-        onRemoveDocument={removeDocument}
-        onClearAll={clearAllDocuments}
-        onViewDocument={onDocumentView}
-        onRetryDocument={onDocumentRetry}
-        disabled={disabled}
-      />
     </div>
   );
 };
