@@ -9,6 +9,7 @@ import AxiosAdapter from "@/infra/AxiosAdapter";
 import DocumentUpdateBase from "@/application/DocumentUpdate";
 import FetchAdapter from "@/infra/FetchAdapter";
 import { SelectedFilesList } from "@/components/common/SelectedFilesList";
+import { DocumentViewerModal } from '../document-view/DocumentViewerModal';
 
 const BASE_URL = import.meta.env.VITE_API_URL_MINUTA;
 const BASE_URL1 = import.meta.env.VITE_API_URL;
@@ -18,6 +19,7 @@ export function DocumentosContent() {
   const docType = DocumentType.DOC;
   const [selectedDocuments, setSelectedDocuments] = useState<DocumentBase[]>([]);
   const [processingDocuments, setProcessingDocuments] = useState<Set<string>>(new Set());
+  const [selectedDocument, setSelectedDocument] = useState<DocumentBase | null>(null)
 
   // Criando o FetchAdapter
   const httpClient = new FetchAdapter();
@@ -102,7 +104,12 @@ export function DocumentosContent() {
   // Visualizar documento
   const handleViewDocument = (document: DocumentBase, index: number) => {
     console.log('Visualizar documento:', document, index);
-    // Implementar lógica de visualização aqui
+    setSelectedDocument(document)
+  };
+
+  // Fechar visualizador
+  const closeDocumentViewer = () => {
+    setSelectedDocument(null)
   };
 
   // Tentar novamente o upload
@@ -162,6 +169,15 @@ export function DocumentosContent() {
         onViewDocument={handleViewDocument}
         onRetryDocument={handleRetryDocument}
       />
+
+      {/* Modal de visualização */}
+      {selectedDocument && (
+        <DocumentViewerModal
+          document={selectedDocument}
+          onClose={closeDocumentViewer}
+        />
+      )}
+
     </div>
   )
 }
